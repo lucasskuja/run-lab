@@ -1,13 +1,15 @@
 name: CI/CD
 
+
 on:
-  pull_request:
-    branches: [main]
   push:
+    branches: [main, '**']
+  pull_request:
     branches: [main]
 
 jobs:
-  test:
+
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,12 +22,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
+      - name: Build Docker image (validação)
+        run: docker build -t run-lab:latest .
       - name: Run tests
-        run: pytest || echo "Nenhum teste encontrado, pulando etapa."
+        run: pytest
+
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

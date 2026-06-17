@@ -1,68 +1,150 @@
-# run-lab
+# cloud-run-python-service-template
 
-> Projeto de estudo para deploy de funções Python no Google Cloud Run
+Reference implementation for a containerized Python HTTP service deployed on Google Cloud Run.
 
-## Estrutura do Projeto
+This repository is designed as a reusable starting point for small service endpoints that need a simple execution model, clear routing, container packaging, and a straightforward deployment path to Cloud Run. It separates route registration from handler logic and keeps the application footprint intentionally small so it can be extended with domain-specific behavior.
 
-- `app.py`: Arquivo principal Flask, expõe as rotas HTTP.
-- `funcoes/`: Pasta com funções separadas para cada operação:
-  - `cadastrar.py`: Função para cadastrar pessoa
-  - `alterar.py`: Função para alterar cadastro
-  - `deletar.py`: Função para deletar pessoa
-- `requirements.txt`: Dependências Python
-- `Dockerfile`: Configuração para build da imagem Docker
+The current implementation includes example CRUD-style endpoints, local Docker execution, and a GitHub Actions workflow for build, test, and deployment.
 
-## Como rodar localmente com Docker
+## What This Repository Provides
 
-1. **Build da imagem:**
-   ```powershell
-   docker build -t run-lab:latest .
-   ```
-2. **Executar o container:**
-   ```powershell
-   docker run -p 8080:8080 run-lab:latest
-   ```
-3. O serviço estará disponível em http://localhost:8080
+- A minimal Flask-based HTTP service structure
+- Route-per-operation handlers organized in a dedicated module folder
+- Docker packaging for consistent local and cloud execution
+- A CI/CD workflow targeting Google Cloud Run
+- A simple base that can be adapted for internal tools, lightweight APIs, or service integrations
 
-## Testando as rotas
+## Current Scope
 
-### PowerShell (recomendado)
+This repository currently focuses on service structure and deployment flow. The handler implementations are intentionally lightweight and return example JSON responses without persistence, validation layers, or external system integration.
 
-#### Cadastrar pessoa (POST)
+## Architecture Overview
+
+- `app.py` exposes the HTTP routes and maps each endpoint to a dedicated handler
+- `funcoes/` contains the operation-specific request handlers
+- `Dockerfile` packages the service for container-based execution
+- `.github/workflows/cicd.yml` defines the build, test, and deployment workflow for Cloud Run
+
+## Project Structure
+
+```text
+.
+|-- .github/
+|   |-- ISSUE_TEMPLATE/
+|   |-- PULL_REQUEST_TEMPLATE/
+|   `-- workflows/
+|       `-- cicd.yml
+|-- funcoes/
+|   |-- alterar.py
+|   |-- cadastrar.py
+|   `-- deletar.py
+|-- app.py
+|-- CONTRIBUTING.md
+|-- Dockerfile
+|-- LICENSE
+|-- README.md
+|-- requirements.txt
+`-- test_app.py
+```
+
+## HTTP Endpoints
+
+The current service exposes three example endpoints:
+
+- `POST /cadastrar`
+- `PUT /alterar`
+- `DELETE /deletar`
+
+These endpoints demonstrate the repository structure and request-handling pattern that can be reused for additional operations.
+
+## Run Locally With Docker
+
+Build the image:
+
 ```powershell
-$body = @{ nome = "João"; idade = 30 } | ConvertTo-Json
+docker build -t cloud-run-python-service-template:latest .
+```
+
+Run the container:
+
+```powershell
+docker run -p 8080:8080 cloud-run-python-service-template:latest
+```
+
+The service will be available at `http://localhost:8080`.
+
+## Example Requests
+
+Create:
+
+```powershell
+$body = @{ nome = "Joao"; idade = 30 } | ConvertTo-Json
 Invoke-RestMethod -Uri http://localhost:8080/cadastrar -Method Post -Body $body -ContentType "application/json"
 ```
 
-#### Alterar cadastro (PUT)
+Update:
+
 ```powershell
-$body = @{ nome = "João"; idade = 31 } | ConvertTo-Json
+$body = @{ nome = "Joao"; idade = 31 } | ConvertTo-Json
 Invoke-RestMethod -Uri http://localhost:8080/alterar -Method Put -Body $body -ContentType "application/json"
 ```
 
-#### Deletar pessoa (DELETE)
+Delete:
+
 ```powershell
-$body = @{ nome = "João" } | ConvertTo-Json
+$body = @{ nome = "Joao" } | ConvertTo-Json
 Invoke-RestMethod -Uri http://localhost:8080/deletar -Method Delete -Body $body -ContentType "application/json"
 ```
 
-## Deploy no Google Cloud Run
+## Deployment Model
 
-1. Faça login no Google Cloud:
-   ```powershell
-   gcloud auth login
-   ```
-2. Configure o projeto:
-   ```powershell
-   gcloud config set project SEU_ID_PROJETO
-   ```
-3. Faça build e push da imagem para o Container Registry:
-   ```powershell
-   gcloud builds submit --tag gcr.io/SEU_ID_PROJETO/run-lab
-   ```
-4. Faça o deploy no Cloud Run:
-   ```powershell
-   gcloud run deploy run-lab --image gcr.io/SEU_ID_PROJETO/run-lab --platform managed --region us-central1 --allow-unauthenticated
-   ```
+This repository is prepared for deployment to Google Cloud Run using a container image built from the included `Dockerfile`.
 
-Substitua `SEU_ID_PROJETO` pelo ID do seu projeto no GCP.
+Manual deployment flow:
+
+```powershell
+gcloud auth login
+gcloud config set project YOUR_GCP_PROJECT_ID
+gcloud builds submit --tag gcr.io/YOUR_GCP_PROJECT_ID/cloud-run-python-service-template
+gcloud run deploy cloud-run-python-service-template --image gcr.io/YOUR_GCP_PROJECT_ID/cloud-run-python-service-template --platform managed --region us-central1 --allow-unauthenticated
+```
+
+Replace `YOUR_GCP_PROJECT_ID` with your Google Cloud project ID.
+
+## CI/CD Workflow
+
+The GitHub Actions workflow currently:
+
+- installs Python dependencies
+- builds the Docker image as a validation step
+- runs the test suite
+- deploys to Cloud Run on pushes to `main`, assuming the required Google Cloud secrets are configured
+
+Required GitHub secrets:
+
+- `GCP_SA_KEY`
+- `GCP_PROJECT_ID`
+
+## How To Extend This Template
+
+Typical extension paths include:
+
+- replacing the example handlers with domain-specific service logic
+- adding input validation and error handling
+- integrating persistence or external APIs
+- expanding the test suite beyond the current baseline
+- renaming endpoints and modules to match the target service domain
+
+## Limitations
+
+This repository should be treated as a lightweight reference base, not as a complete production framework. It does not currently include:
+
+- persistence
+- authentication or authorization
+- schema validation
+- structured logging or observability instrumentation
+- environment-specific configuration management beyond the deployment workflow
+
+## Contributing
+
+Contributions that improve clarity, reusability, and deployment quality are welcome. See `CONTRIBUTING.md` for contribution guidelines.
